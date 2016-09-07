@@ -1,0 +1,212 @@
+SERVER SIDE PLAYGROUND
+===============================================
+
+npm init
+
+npm install gulpjs/gulp#4.0 gulp-load-plugins gulp-babel babel-preset-es2015 browserify watchify babelify gulp-cached nodemon vinyl-source-stream --save-dev
+
+npm install gulpjs/gulp#4.0 installs from the github repository # means the branch. We need to have intalled also GIT.
+
+We also need the gulp-cli 
+-------------------------
+npm install -g gulp-cli
+
+vinyl-source-stream to allow browserify to work with gulp
+gulp-babel plugin to compile our server side code
+browserify package manager to compile our client side code with the babelify plugin 
+
+Also need to install gulp globaly so we can run gulp from the command line.
+
+Run time dependencies
+----------------------
+npm install jquery lodash moment colour --save
+
+colour allows us to change the colour of the console output for when we are printing to the console. 
+
+
+Install reactive extensions 
+---------------------------
+npm install rxjs --save 
+
+
+Folders:
+--------
+
+1. src-server
+2. build
+
+
+We run gulp-cli and watch for the transformation, we will see that the transformation won't take effect until we create a file called .bablerc 
+
+{
+   "presets": [es2015]
+}
+
+Changing the package.json for calling the nodemon on node_modules/.bin/nodemon which is the process we need to invoke. So we create a package.json script that alias this for us so I can type "npm run nodemon" that typing somethig else.
+
+ "scripts": {
+    "nodemon": "nodemon"
+  },
+
+
+Run the following
+-----------------
+  1. gulp watch:scripts:server 
+
+  In another commpand prompt console window
+
+  2. npm run nodemon build/example_00
+
+gulpfile.js
+===========
+
+.pipe($.cached("server")) // files that have not been changed won't be processed
+
+
+CLIENT SIDE PLAYGROUND
+===============================================
+
+We get the basic http server globaly and configure
+browserify, watchify and babelify to compile our client examples. 
+
+Create filders
+
+public (HTML files that run in the browser)
+  build (where we going to compile our source client code)
+
+src-client (put our example javascript code which we want to run in the browser)
+
+
+gulpfile.js
+===========
+
+We need to watch to the files that live in the src-client folder. And for every new file that comes in we are going to lunch a gulp watchify 
+
+
+create a couple of helper functions
+-----------------------------------
+
+We need to invoke initBundlerWatch with every single file that is
+inside the src-client folder as well as any additional file it might
+pop-up 
+
+
+let bundlers = {};
+
+function initBundlerWatch(file){
+  if(bundlers.hasOwnProperty(file))
+  {
+    return;
+  }
+
+  const bundler = createBundle(file);
+  const watcher = watchify(bundler);
+  const fileName = path.basename(file);
+
+
+
+
+    ---> NEXT commments (see below)
+    // This function instructs the bundler
+    // which is an instance of browserify 
+    // to bundle all of the modules we imported
+    // into this transformation into this one object (bundler) pipe it into 
+    // into vinyl source stream with the source 
+    // of the given the name (filename)
+    // because browserify doesn't create files
+    // with names AND 
+    // IN ORDER TO WORK WITH GULP needs a name 
+    // and that's what vinyl source stream does
+    // and we pipe it to public/build as the 
+    // output.
+
+    function bundle(){
+      return bundler 
+        .bundle()
+        .on("error", error => console.log(error))
+        .pipe(source(filename))
+        .pipe(gulp.dest("./public/build"));
+    }
+
+    // we need to hook into the watchify events
+    // which will notify us when the file changes
+    // and we need to do a RE BUNDLE. 
+
+    // we are saying watchify whenever you see a 
+    // file change go ahead and RE BUNDLE IT.
+
+    watcher.on("update", bundle);
+    // the following will notify us when the 
+    // build actually happens.
+    watcher.on("time", time => console.log(`Built client in ${time}ms`));
+
+
+    bundle();
+}
+
+We need to import path on the gulpfile.js
+   path = require("path");
+path.basename(file) returns the file name of the absolute file reference.  ---> NEXT commments
+  
+
+// Takes a file and instructs browserify
+// to use that file to compile it.
+// we can't use babelify because it won't
+// give us any module loading. 
+// browserify pulls in the modules we import.
+
+function createBundle(file) {
+    const bundler = browserify(file);
+    bundler.transform(babelify);
+    return bundler;
+}
+
+we need to create a new task 
+----------------------------
+
+gulp.task("watch:scripts:client", () => {
+    // WE NEED 
+    // fs = require("fs");
+
+    
+    // looks into our src-client folder finds all the files 
+    // and initialize a watch on each of those files 
+
+    const files = fs.readdirSync("./src-client");
+    for (let i = 0; i< files.length; i++) {
+      const file = files[i];
+      if (path.extname(file) != '.js'){
+        continue;
+      }
+    
+      initBundlerWatch(path.join("src-client", file));
+
+    }
+
+    // then I want to watch for any new file.
+    return gulp.watch("./src-client/**/*.js)
+          .on("change", 
+}); 
+
+
+// add the following AFTER
+    const watcher = watchify(bundler);
+    // ADD THIS...
+    const filename = path.basename(file);
+
+
+
+Create a new task
+=================
+
+gulp.task("watch:scripts", gulp.parallel(
+  "watch:scripts:client",
+  "watch:scripts:server"));
+
+
+SET UP THE SERVER: allows me to server a directory.
+---------------------------------------------------
+
+npm install lite-server -g
+
+we go into the public folder and run the lite-server
