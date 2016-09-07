@@ -207,6 +207,8 @@ gulp.task("watch:scripts", gulp.parallel(
 SET UP THE SERVER: allows me to server a directory.
 ---------------------------------------------------
 
-npm install lite-server -g
+npm install lite-server -g or 
+npm install live-server 
+
 
 we go into the public folder and run the lite-server
